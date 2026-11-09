@@ -1,0 +1,50 @@
+
+name: Generate Money Reels
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: "Choose a video topic"
+        required: true
+        type: choice
+        options:
+          - decoy
+          - compound
+          - nisa
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download project
+        uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-noto-cjk
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python libraries
+        run: |
+          python -m pip install --upgrade pip
+          pip install pillow edge-tts
+
+      - name: Generate video
+        run: |
+          python render.py --topic "${{ inputs.topic }}" --output video.mp4
+
+      - name: Save completed video
+        uses: actions/upload-artifact@v4
+        with:
+          name: money-reels-video
+          path: video.mp4
+          retention-days: 7
