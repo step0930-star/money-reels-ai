@@ -4,25 +4,30 @@ on:
   workflow_dispatch:
     inputs:
       topic:
-        description: "Choose a video topic"
+        description: 'Video topic'
         required: true
         type: choice
+        default: auto
         options:
+          - auto
           - decoy
           - compound
           - nisa
+  schedule:
+    - cron: '0 0 * * *'
+
+permissions:
+  contents: read
 
 jobs:
   generate:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
+    timeout-minutes: 30
     steps:
-      - name: Download project
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install system packages
+      - name: Install FFmpeg and Japanese fonts
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg fonts-noto-cjk
@@ -32,18 +37,21 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Python libraries
+      - name: Install libraries
         run: |
           python -m pip install --upgrade pip
           pip install pillow edge-tts
 
       - name: Generate video
+        env:
+          TOPIC: ${{ github.event.inputs.topic || 'auto' }}
         run: |
-          python render.py --topic "${{ inputs.topic }}" --output video.mp4
+          python render.py --topic "$TOPIC" --output video.mp4
 
-      - name: Save completed video
+      - name: Upload video
         uses: actions/upload-artifact@v4
         with:
           name: money-reels-video
           path: video.mp4
+          if-no-files-found: error
           retention-days: 7
